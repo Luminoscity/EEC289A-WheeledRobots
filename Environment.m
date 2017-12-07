@@ -53,7 +53,7 @@ classdef Environment < handle
          count = 0;
          while count == 0
             [count, positions] = obj.OkayPositions(randi(...
-               obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+1);
+               obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+2);
          end
          obj.start = positions{randi(count)};
          obj.whichObstacles(obj.start(2), obj.start(1)) = obstCount + 2;
@@ -61,7 +61,7 @@ classdef Environment < handle
          count = 0;
          while count == 0
             [count, positions] = obj.OkayPositions(randi(...
-               obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+2);
+               obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+4);
          end
          obj.goal = positions{randi(count)};
          obj.whichObstacles(obj.goal(2), obj.goal(1)) = obstCount + 4;
