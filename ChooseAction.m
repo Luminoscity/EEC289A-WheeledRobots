@@ -1,3 +1,7 @@
+% Tim Ambrose and Karthika Pai
+% 11 December 2017
+% EEC289A - UC Davis
+
 function A = ChooseAction(state, stateActionValues, C)
    if binornd(1, C.EPSILON) == 1
       A = randi(4);

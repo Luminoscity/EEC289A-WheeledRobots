@@ -1,6 +1,6 @@
 % Tim Ambrose and Karthika Pai
 % 11 December 2017
-% EEC289A - 
+% EEC289A - UC Davis
 
 % Adapted from python code from Sutton's website
 %###################################################################
@@ -17,11 +17,11 @@ DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
 DIST_ANGLE_QUANTIZE = 30;    % number of measured distance angles
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 20;
-WORLD_HEIGHT = 20;
-OBSTACLE_SEPARATION = 1;
-MAX_OBSTACLES = 5;
-MAX_OBSTACLE_AREA = 10;
+WORLD_WIDTH = 30;
+WORLD_HEIGHT = 30;
+OBSTACLE_SEPARATION = 2;
+MAX_OBSTACLES = 20;
+MAX_OBSTACLE_AREA = 40;
 
 EPSILON = 0.1;
 ALPHA = 0.5;
@@ -66,13 +66,30 @@ C = struct('EPSILON', EPSILON,...
            'DISTS', DIST_QUANTIZE,...
            'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA,...
            'MAX_OBSTACLES', MAX_OBSTACLES,...
-           'OBSTACLE_SEPARATION', OBSTACLE_SEPARATION,...
+           'OBS_SPACE', OBSTACLE_SEPARATION,...
            'WORLD_WIDTH', WORLD_WIDTH,...
            'WORLD_HEIGHT', WORLD_HEIGHT);
 
 %------------------------MAIN---------------------------
+env = Environment(C);
+env.GenerateObstacles();
+imagesc(env.whichObstacles)
+colormap Jet;
+colorbar;
 
-stateActionValues = zeros(C.ANGLES, C.DISTS, , C.ACTIONS);
+env.GenerateObstacles();
+figure
+imagesc(env.whichObstacles)
+colormap Jet
+colorbar;
+
+env.GenerateObstacles();
+figure
+imagesc(env.whichObstacles)
+colormap Jet
+colorbar;
+
+stateActionValues = zeros(C.ANGLES, C.DISTS, C.DIRS, C.ACTIONS);
 %{
 startState = [WORLD_HEIGHT, 1];
 goalState = [WORLD_HEIGHT, WORLD_WIDTH];
