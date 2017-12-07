@@ -7,6 +7,8 @@ classdef Environment < handle
       C
       obstacles            %Is there an obstacle at each coordinate
       whichObstacles       %Which obstacle is at each coordinate
+      start
+      goal
    end
    %{
    properties (Access = private)
@@ -16,16 +18,14 @@ classdef Environment < handle
    methods
       function obj = Environment(constants)
          obj.C = constants;
-         obj.whichObstacles = zeros(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
-         obj.obstacles = false(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
       end
       
       function GenerateObstacles(obj)
          obj.obstacles = false(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
-         obstacleCount = randi(obj.C.MAX_OBSTACLES);
+         obstCount = randi(obj.C.MAX_OBSTACLES);
          obj.whichObstacles = zeros(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
          
-         for obs = 1:obstacleCount
+         for obs = 1:obstCount
             obstacleArea = randi(obj.C.MAX_OBSTACLE_AREA);
             %generate obstacles leaving some space between obstacles
             area = 0;
@@ -49,6 +49,22 @@ classdef Environment < handle
                [count, positions] = obj.OkayPositions(newX, newY, obs);
             end
          end
+         
+         count = 0;
+         while count == 0
+            [count, positions] = obj.OkayPositions(randi(...
+               obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+1);
+         end
+         obj.start = positions{randi(count)};
+         obj.whichObstacles(obj.start(2), obj.start(1)) = obstCount + 2;
+         
+         count = 0;
+         while count == 0
+            [count, positions] = obj.OkayPositions(randi(...
+               obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+2);
+         end
+         obj.goal = positions{randi(count)};
+         obj.whichObstacles(obj.goal(2), obj.goal(1)) = obstCount + 4;
       end
       
       function [count, positions] = OkayPositions(obj, x, y, current)
