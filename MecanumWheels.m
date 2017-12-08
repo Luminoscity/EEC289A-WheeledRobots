@@ -15,14 +15,14 @@
 clear;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
-DIST_ANGLE_QUANTIZE = 30;    % number of measured distance angles
+DIST_ANGLE_QUANTIZE = 60;    % number of measured distance angles
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 30;
-WORLD_HEIGHT = 30;
+WORLD_WIDTH = 30;%60;
+WORLD_HEIGHT = 30;%60
 OBSTACLE_SEPARATION = 2;
 MIN_OBSTACLES = 2;
-MAX_OBSTACLES = 35;
-MAX_OBSTACLE_AREA = 80;
+MAX_OBSTACLES = 15;%35
+MAX_OBSTACLE_AREA = 40;%80
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 
 EPSILON = 0.1;
