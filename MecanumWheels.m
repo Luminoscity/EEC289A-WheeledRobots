@@ -15,28 +15,29 @@
 clear;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
-DIST_ANGLE_QUANTIZE = 30;    % number of measured distance angles
+DIST_ANGLE_QUANTIZE = 60;    % number of measured distance angles
 TURN_ANGLE = pi / 4;         % 45 degree turns
 WORLD_WIDTH = 30;
 WORLD_HEIGHT = 30;
 OBSTACLE_SEPARATION = 2;
 MAX_OBSTACLES = 12;
 MAX_OBSTACLE_AREA = 40;
+DISTANCE_SENSOR_RESOLUTION = 0.1;
 
 EPSILON = 0.1;
 ALPHA = 0.5;
 GAMMA = 1;
 
-ACTION_NORTH = 1;
-ACTION_LEFT = 2;   %turn left slightly
-ACTION_RIGHT = 3;  %turn right slightly
-ACTION_NORTHWEST = 4;
-ACTION_WEST = 5;
-ACTION_SOUTHWEST = 6;
-ACTION_SOUTH = 7;
-ACTION_SOUTHEAST = 8;
-ACTION_EAST = 9;
-ACTION_NORTHEAST = 10;
+ACTION_NORTH = [0, 1, 0];
+ACTION_LEFT = [0, 0, -pi/4];   %turn left slightly
+ACTION_RIGHT = [0, 0, pi/4];  %turn right slightly
+ACTION_NORTHWEST = [1, -1, 0];
+ACTION_WEST = [1, 0, 0];
+ACTION_SOUTHWEST = [1, 1, 0];
+ACTION_SOUTH = [0, 1, 0];
+ACTION_SOUTHEAST = [-1, 1, 0];
+ACTION_EAST = [-1, 0, 0];
+ACTION_NORTHEAST = [-1, -1, 0];
 DIR_NORTH = pi / 2;
 DIR_NORTHWEST = pi / 4;
 DIR_WEST = 0;
@@ -68,7 +69,8 @@ C = struct('EPSILON', EPSILON,...
            'MAX_OBSTACLES', MAX_OBSTACLES,...
            'OBS_SPACE', OBSTACLE_SEPARATION,...
            'WORLD_WIDTH', WORLD_WIDTH,...
-           'WORLD_HEIGHT', WORLD_HEIGHT);
+           'WORLD_HEIGHT', WORLD_HEIGHT,...
+           'DIST_RES', DISTANCE_SENSOR_RESOLUTION);
 
 %------------------------MAIN---------------------------
 env = Environment(C);
@@ -77,6 +79,17 @@ imagesc(env.whichObstacles)
 colormap Jet;
 colorbar;
 
+robot = WheeledRobot(env);
+robot.StartAt(env.start, pi/2);
+distances = robot.ReadDistances(env);
+figure
+for i = 1:C.ANGLES
+   polarplot([C.angles(i), (C.angles(i)+0.001)], [0, distances(i)])
+   hold on
+end
+hold off
+
+%{
 env.GenerateObstacles();
 figure
 imagesc(env.whichObstacles)
@@ -88,7 +101,7 @@ figure
 imagesc(env.whichObstacles)
 colormap Jet
 colorbar;
-
+%}
 stateActionValues = zeros(C.ANGLES, C.DISTS, C.DIRS, C.ACTIONS);
 %{
 startState = [WORLD_HEIGHT, 1];
