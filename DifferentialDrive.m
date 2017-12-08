@@ -1,28 +1,75 @@
-% Tim Ambrose
-% 9 November 2017
-% EEC289A - HW4 - Q2
+% Tim Ambrose and Karthika Pai
+% 11 December 2017
+% EEC289A - UC Davis
 
-% Adapted from supplied python code
-%######################################################################
-% Copyright (C)                                                       #
-% 2016 Shangtong Zhang(zhangshangtong.cpp@gmail.com)                  #
-% 2016 Kenta Shimada(hyperkentakun@gmail.com)                         #
-% Permission given to modify the code as long as you keep this        #
-% declaration at the top                                              #
-%######################################################################
+% Adapted from python code from Sutton's website
+%###################################################################
+% Copyright (C)                                                    #
+% 2016 Shangtong Zhang(zhangshangtong.cpp@gmail.com)               #
+% 2016 Kenta Shimada(hyperkentakun@gmail.com)                      #
+% Permission given to modify the code as long as you keep this     #
+% declaration at the top                                           #
+%###################################################################
 
 %----------------------CONSTANTS---------------------------
 clear;
-STATES = 19;
-GAMMA = 1;
-START_STATE = 11;
-END_STATES = [1, STATES + 2];
-C = struct('END_STATES', END_STATES,...
-           'GAMMA', GAMMA,...
-           'START_STATE', START_STATE);
+DIST_QUANTIZE = 5;           % number of quantized distances
+DIST_QUANT_STEP = 5;         % centimeters between quantized distances
+DIST_ANGLE_QUANTIZE = 60;    % number of measured distance angles
+TURN_ANGLE = pi / 4;         % 45 degree turns
+WORLD_WIDTH = 30;
+WORLD_HEIGHT = 30;
+OBSTACLE_SEPARATION = 2;
+MAX_OBSTACLES = 12;
+MAX_OBSTACLE_AREA = 40;
+DISTANCE_SENSOR_RESOLUTION = 0.1;
 
-%------------------------MAIN------------------------------
+EPSILON = 0.1;
+ALPHA = 0.5;
+GAMMA = 1;
+
+ACTION_NORTH = [0, 1, 0];
+ACTION_LEFT = [0, 0, -pi/4];   %turn left slightly
+ACTION_RIGHT = [0, 0, pi/4];  %turn right slightly
+
+DIR_NORTH = pi / 2;
+DIR_NORTHWEST = pi / 4;
+DIR_WEST = 0;
+DIR_SOUTHWEST = 7 * pi / 4;
+DIR_SOUTH = 3 * pi / 2;
+DIR_SOUTHEAST = 5 * pi / 4;
+DIR_EAST = pi;
+DIR_NORTHEAST = 3 * pi / 4;
+
+actions = [ACTION_NORTH, ACTION_LEFT, ACTION_RIGHT];
+directions = [DIR_NORTH, DIR_NORTHWEST, DIR_WEST, DIR_SOUTHWEST,...
+              DIR_SOUTH, DIR_SOUTHEAST, DIR_EAST, DIR_NORTHEAST];
+angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
+angles = 0:angleStep:(2 * pi - angleStep);
+
+C = struct('EPSILON', EPSILON,...
+           'ALPHA', ALPHA,...
+           'GAMMA', GAMMA,...
+           'ACTIONS', length(actions),...
+           'actions', actions,...
+           'DIRS', length(directions),...
+           'directions', directions,...
+           'ANGLES', length(angles),...
+           'angles', angles,...
+           'DISTS', DIST_QUANTIZE,...
+           'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA,...
+           'MAX_OBSTACLES', MAX_OBSTACLES,...
+           'OBS_SPACE', OBSTACLE_SEPARATION,...
+           'WORLD_WIDTH', WORLD_WIDTH,...
+           'WORLD_HEIGHT', WORLD_HEIGHT,...
+           'DIST_RES', DISTANCE_SENSOR_RESOLUTION);
+
+%------------------------MAIN---------------------------
+env = Environment(C);
+env.GenerateObstacles();
+
 stateValues = zeros(1, STATES + 2);
+%{
 states = 2:(STATES + 1);
 realStateValues = (-20:2:20) ./ 20.0;
 realStateValues(1) = 0;
@@ -67,3 +114,4 @@ end
 legend(labels);
 xlim([0 1.1]);
 title('Random Walk, n-Step TD');
+%}
