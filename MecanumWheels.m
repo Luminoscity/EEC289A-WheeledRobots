@@ -15,13 +15,14 @@
 clear;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
-DIST_ANGLE_QUANTIZE = 60;    % number of measured distance angles
+DIST_ANGLE_QUANTIZE = 30;    % number of measured distance angles
 TURN_ANGLE = pi / 4;         % 45 degree turns
 WORLD_WIDTH = 30;
 WORLD_HEIGHT = 30;
 OBSTACLE_SEPARATION = 2;
-MAX_OBSTACLES = 12;
-MAX_OBSTACLE_AREA = 40;
+MIN_OBSTACLES = 2;
+MAX_OBSTACLES = 35;
+MAX_OBSTACLE_AREA = 80;
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 
 EPSILON = 0.1;
@@ -47,9 +48,9 @@ DIR_SOUTHEAST = 5 * pi / 4;
 DIR_EAST = pi;
 DIR_NORTHEAST = 3 * pi / 4;
 
-actions = [ACTION_NORTH, ACTION_LEFT, ACTION_RIGHT, ACTION_NORTHWEST,...
-           ACTION_WEST, ACTION_SOUTHWEST, ACTION_SOUTH,...
-           ACTION_SOUTHEAST, ACTION_EAST, ACTION_NORTHEAST];
+actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
+           ACTION_WEST; ACTION_SOUTHWEST; ACTION_SOUTH;...
+           ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
 directions = [DIR_NORTH, DIR_NORTHWEST, DIR_WEST, DIR_SOUTHWEST,...
               DIR_SOUTH, DIR_SOUTHEAST, DIR_EAST, DIR_NORTHEAST];
 angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
@@ -66,6 +67,7 @@ C = struct('EPSILON', EPSILON,...
            'angles', angles,...
            'DISTS', DIST_QUANTIZE,...
            'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA,...
+           'MIN_OBSTACLES', MIN_OBSTACLES,...
            'MAX_OBSTACLES', MAX_OBSTACLES,...
            'OBS_SPACE', OBSTACLE_SEPARATION,...
            'WORLD_WIDTH', WORLD_WIDTH,...
@@ -103,6 +105,7 @@ colormap Jet
 colorbar;
 %}
 stateActionValues = zeros(C.ANGLES, C.DISTS, C.DIRS, C.ACTIONS);
+
 %{
 startState = [WORLD_HEIGHT, 1];
 goalState = [WORLD_HEIGHT, WORLD_WIDTH];
@@ -130,8 +133,8 @@ end
 actionDestination(WORLD_HEIGHT, 1, ACTION_RIGHT, :) = startState(:);
 
 averageRange = 10;
-EPISODES = 500;
-RUNS = 20;
+EPISODES = 100;
+RUNS = 10;
 
 rewardsSarsa = zeros(1, EPISODES);
 rewardsQLearning = zeros(1, EPISODES);
@@ -161,11 +164,14 @@ for i = (averageRange + 1):EPISODES
 end
 
 %--------------------PLOT RESULTS--------------------------------
+%{
 plot(sarsaResults);
-hold on;
+hold on
 plot(qLearningResults);
 legend('Sarsa', 'Q-Learning');
 xlabel('Episodes');
 ylabel('Sum of Rewards During Episode');
 title('Cliff Walking');
+%}
+hold off
 %}

@@ -41,7 +41,7 @@ DIR_SOUTHEAST = 5 * pi / 4;
 DIR_EAST = pi;
 DIR_NORTHEAST = 3 * pi / 4;
 
-actions = [ACTION_NORTH, ACTION_LEFT, ACTION_RIGHT];
+actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT];
 directions = [DIR_NORTH, DIR_NORTHWEST, DIR_WEST, DIR_SOUTHWEST,...
               DIR_SOUTH, DIR_SOUTHEAST, DIR_EAST, DIR_NORTHEAST];
 angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
@@ -68,7 +68,9 @@ C = struct('EPSILON', EPSILON,...
 env = Environment(C);
 env.GenerateObstacles();
 
-stateValues = zeros(1, STATES + 2);
+stateActionValues = zeros(C.ANGLES, C.DISTS, C.DIRS, C.ACTIONS);
+% I don't think we can do n-step TD until we know the real state values
+% (Sarsa and Q-learning should tell us that)
 %{
 states = 2:(STATES + 1);
 realStateValues = (-20:2:20) ./ 20.0;

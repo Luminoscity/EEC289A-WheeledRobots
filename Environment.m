@@ -22,7 +22,7 @@ classdef Environment < handle
       
       function GenerateObstacles(obj)
          obj.obstacles = false(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
-         obstCount = randi(obj.C.MAX_OBSTACLES);
+         obstCount = randi([obj.C.MIN_OBSTACLES, obj.C.MAX_OBSTACLES]);
          obj.whichObstacles = zeros(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
          
          for obs = 1:obstCount
