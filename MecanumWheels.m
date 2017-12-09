@@ -14,24 +14,28 @@
 %----------------------CONSTANTS---------------------------
 clear
 close all
-PLOT_WORLD = true;
+PLOT_WORLD = false;
 PLOT_INITIAL_DISTANCES = false;
 PROGRESS_STEP = 5;
+WORLD_IDX_START = 1;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
 DIST_ANGLE_MEAS = 60;        % number of angles to measure distances at
 DIST_ANGLE_QUANTIZE = 16;    % number of quantized distance angles to
                              % record as part of the state
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 15;%40;%60;
-WORLD_HEIGHT = 15;%40;%60;
+WORLD_WIDTH = [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25];
+WORLD_HEIGHT = [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25];
 OBSTACLE_SEPARATION = 2;
-MIN_OBSTACLES = 2;
-MAX_OBSTACLES = 10;%15;%35;
-MAX_OBSTACLE_AREA = 20;%40;%80;
+MIN_OBSTACLES = [1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2];
+MAX_OBSTACLES = [1,2,2,3,4,5,6,7,8,9,10,11,12,13,14,15];%15;%35;
+MAX_OBSTACLE_AREA = [10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40];
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 ROUND_MAGNITUDE = 1.49;
 REWARD_FLOOR = -200;
+
+EPISODES = 6;
+RUNS = 1;
 
 EPSILON = 0.1;
 ALPHA = 0.5;
@@ -56,11 +60,24 @@ DIR_SOUTHEAST = 5 * pi / 4;
 DIR_SOUTH = 3 * pi / 2;
 DIR_SOUTHWEST = 7 * pi / 4;
 
+directions = [DIR_WEST, DIR_NORTHWEST, DIR_NORTH, DIR_NORTHEAST,...
+              DIR_EAST, DIR_SOUTHEAST, DIR_SOUTH, DIR_SOUTHWEST];
+           
 actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
            ACTION_WEST; ACTION_SOUTHWEST; ACTION_SOUTH;...
            ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
-directions = [DIR_WEST, DIR_NORTHWEST, DIR_NORTH, DIR_NORTHEAST,...
-              DIR_EAST, DIR_SOUTHEAST, DIR_SOUTH, DIR_SOUTHWEST];
+
+stateActionValues = zeros(DIST_ANGLE_QUANTIZE, DIST_ANGLE_QUANTIZE, ...
+   length(directions), length(actions));
+
+stateActionValuesSarsa = stateActionValues(:,:,:,:);
+stateActionValuesQLearning = stateActionValues(:,:,:,:);
+
+wIdx = 1;
+for world = WORLD_IDX_START:(WORLD_IDX_START + length(WORLD_WIDTH) - 1)
+
+
+
 angleStep = 2 * pi / DIST_ANGLE_MEAS;
 angles = 0:angleStep:(2 * pi - angleStep);
 angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
@@ -79,21 +96,20 @@ C = struct('EPSILON', EPSILON,...
            'qAngles', qAngles,...
            'DISTS', DIST_QUANTIZE,...
            'DIST_STEP', DIST_QUANT_STEP,...
-           'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA,...
-           'MIN_OBSTACLES', MIN_OBSTACLES,...
-           'MAX_OBSTACLES', MAX_OBSTACLES,...
+           'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA(wIdx),...
+           'MIN_OBSTACLES', MIN_OBSTACLES(wIdx),...
+           'MAX_OBSTACLES', MAX_OBSTACLES(wIdx),...
            'OBS_SPACE', OBSTACLE_SEPARATION,...
-           'WORLD_WIDTH', WORLD_WIDTH,...
-           'WORLD_HEIGHT', WORLD_HEIGHT,...
+           'WORLD_WIDTH', WORLD_WIDTH(wIdx),...
+           'WORLD_HEIGHT', WORLD_HEIGHT(wIdx),...
            'DIST_RES', DISTANCE_SENSOR_RESOLUTION,...
            'ROUND_MAGNITUDE', ROUND_MAGNITUDE);
 
 %------------------------MAIN---------------------------
 env = Environment(C);
-error = env.GenerateObstacles();
-if error > 0
-   fprintf('\nWorld Creation failed, please run again\n')
-   return
+error = 1;
+while error > 0
+   error = env.GenerateObstacles();
 end
 
 if PLOT_WORLD
@@ -147,17 +163,13 @@ stateActionValues = zeros(C.QUANT_ANGLES, C.QUANT_ANGLES, C.DIRS, ...
    C.ACTIONS);
 
 averageRange = 10;
-EPISODES = 50;
-RUNS = 5;
 
 tstart = tic;
 rewardsSarsa = zeros(1, EPISODES);
 rewardsQLearning = zeros(1, EPISODES);
-fprintf('Runs remaining: ');
+fprintf('World %d Runs remaining: ', world);
 for run = 1:RUNS
    fprintf('%d:', RUNS - run + 1);
-   stateActionValuesSarsa = stateActionValues(:,:,:,:);
-   stateActionValuesQLearning = stateActionValues(:,:,:,:);
    for i = 1:EPISODES
       if mod(i - 1, PROGRESS_STEP) == 0
          fprintf('%d ', EPISODES - i + 1);
@@ -183,8 +195,15 @@ for i = (averageRange + 1):EPISODES
    qLearningResults(i) = mean(rewardsQLearning((i - averageRange):i));
 end
 tstop = toc(tstart);
-fprintf('\nTime for %d runs: %f seconds\n', runs, tstop)
+fprintf('\nTime for World %d (%d runs, %d episodes): %f seconds\n', ...
+   world, RUNS, EPISODES, tstop)
 
+%--------------------SAVE RESULTS--------------------------------
+saveString = sprintf("World%d.mat", world);
+save(saveString,'env', 'sarsaResults', 'qLearningResults', 'EPISODES', ...
+   'RUNS', 'tstop')
+wIdx = wIdx + 1;
+end
 %--------------------PLOT RESULTS--------------------------------
 figure
 plot(sarsaResults)
@@ -193,5 +212,5 @@ plot(qLearningResults)
 legend('Sarsa', 'Q-Learning');
 xlabel('Episodes');
 ylabel('Sum of Rewards During Episode');
-title('Cliff Walking');
+title('Mecanum Wheels');
 hold off

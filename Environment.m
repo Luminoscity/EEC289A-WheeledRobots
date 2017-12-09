@@ -14,7 +14,7 @@ classdef Environment < handle
    
    properties (Access = private)
       %whichObstacles    %Which obstacle is at each coordinate
-      maxAttempts = 1000;
+      maxAttempts = 500;
    end
    
    methods
@@ -26,6 +26,7 @@ classdef Environment < handle
          obj.obstacles = false(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
          obstCount = randi([obj.C.MIN_OBSTACLES, obj.C.MAX_OBSTACLES]);
          obj.whichObstacles = zeros(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
+         obj.numObstacles = obstCount;
          
          for obs = 1:obstCount
             obstacleArea = randi(obj.C.MAX_OBSTACLE_AREA);
