@@ -16,17 +16,18 @@ clear
 close all
 PLOT_WORLD = true;
 PLOT_INITIAL_DISTANCES = false;
+PROGRESS_STEP = 5;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
 DIST_ANGLE_MEAS = 60;        % number of angles to measure distances at
 DIST_ANGLE_QUANTIZE = 16;    % number of quantized distance angles to
                              % record as part of the state
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 10;%40;%60;
-WORLD_HEIGHT = 10;%40;%60;
+WORLD_WIDTH = 15;%40;%60;
+WORLD_HEIGHT = 15;%40;%60;
 OBSTACLE_SEPARATION = 2;
 MIN_OBSTACLES = 2;
-MAX_OBSTACLES = 3;%15;%35;
+MAX_OBSTACLES = 10;%15;%35;
 MAX_OBSTACLE_AREA = 20;%40;%80;
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 ROUND_MAGNITUDE = 1.49;
@@ -146,9 +147,10 @@ stateActionValues = zeros(C.QUANT_ANGLES, C.QUANT_ANGLES, C.DIRS, ...
    C.ACTIONS);
 
 averageRange = 10;
-EPISODES = 100;
-RUNS = 10;
+EPISODES = 50;
+RUNS = 5;
 
+tstart = tic;
 rewardsSarsa = zeros(1, EPISODES);
 rewardsQLearning = zeros(1, EPISODES);
 fprintf('Runs remaining: ');
@@ -157,7 +159,7 @@ for run = 1:RUNS
    stateActionValuesSarsa = stateActionValues(:,:,:,:);
    stateActionValuesQLearning = stateActionValues(:,:,:,:);
    for i = 1:EPISODES
-      if mod(i - 1, 10) == 0
+      if mod(i - 1, PROGRESS_STEP) == 0
          fprintf('%d ', EPISODES - i + 1);
       end
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
@@ -171,7 +173,6 @@ for run = 1:RUNS
       rewardsQLearning(i) = rewardsQLearning(i) + max(Value, REWARD_FLOOR);
    end
 end
-fprintf('\n');
 
 rewardsSarsa = rewardsSarsa ./ RUNS;
 rewardsQLearning = rewardsQLearning ./ RUNS;
@@ -181,6 +182,8 @@ for i = (averageRange + 1):EPISODES
    sarsaResults(i) = mean(rewardsSarsa((i - averageRange):i));
    qLearningResults(i) = mean(rewardsQLearning((i - averageRange):i));
 end
+tstop = toc(tstart);
+fprintf('\nTime for %d runs: %f seconds\n', runs, tstop)
 
 %--------------------PLOT RESULTS--------------------------------
 figure
