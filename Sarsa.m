@@ -1,8 +1,9 @@
-function [R, values] = Sarsa(stateActionValues, expected, stepSize, startState, goalState, C)
+function [R, values] = Sarsa(stateActionValues, expected, env)
+   stepSize = env.C.ALPHA;
    global actionDestination;
    global actionRewards;
    R = 0.0;
-   currentState = startState(:)';
+   currentState = env.start(:)';
    currentAction = ChooseAction(currentState, stateActionValues, C);
    
    while currentState(1) ~= goalState(1) || currentState(2) ~= goalState(2)

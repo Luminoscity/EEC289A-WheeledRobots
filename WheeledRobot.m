@@ -33,13 +33,38 @@ classdef WheeledRobot < handle
          obj.orientation = mod(obj.orientation + action(3), 2*pi);
       end
       
+      function [distToGoal, dirToGoal, angleToGoal] = GetBearing(obj, env)
+         xToGoal = env.goal(1) - obj.position(1);
+         yToGoal = env.goal(2) - obj.position(2);
+         if xToGoal == 0         %avoid divide by zero
+            xToGoal = 0.00001;
+         end
+         if xToGoal > 0 && yToGoal < 0
+            angleToGoal = 2*pi + atan(yToGoal / xToGoal);
+         elseif xToGoal < 0
+            angleToGoal = pi + atan(yToGoal / xToGoal);
+         else
+            angleToGoal = atan(yToGoal / xToGoal);
+         end
+         dirs = [obj.directions(:)', (2*pi)];
+         [~, dirToGoal] = min(abs(dirs - angleToGoal));
+         dirToGoal = max(mod(dirToGoal, env.C.DIRS + 1), 1);
+         distToGoal = sqrt(xToGoal * xToGoal + yToGoal * yToGoal);
+      end
+      
+      function distanceReadings = QuantizedDistReadings(obj, env)
+         distanceReadings = obj.ReadDistances(env);
+         divided = distanceReadings ./ env.C.DIST_STEP;
+         distanceReadings = uint8(min(floor(divided) + 1, env.C.DISTS));
+      end
+      
       function distanceReadings = ReadDistances(obj, env)
-         distanceReadings = zeros(1, env.C.ANGLES, 'uint8');
+         distanceReadings = zeros(1, env.C.ANGLES);
          
          for i = 1:env.C.ANGLES
             beam = obj.position + 0.5;
             distance = 0;
-            beamAngle = env.C.angles(i) + obj.orientation;
+            beamAngle = env.C.angles(i) + obj.orientation - pi/2;
             while beam(1) >= 1 && beam(1) < env.C.WORLD_WIDTH + 1 && ...
                   beam(2) >= 1 && beam(2) < env.C.WORLD_HEIGHT + 1
                

@@ -12,17 +12,18 @@
 %###################################################################
 
 %----------------------CONSTANTS---------------------------
-clear;
+clear
+close all
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
 DIST_ANGLE_QUANTIZE = 60;    % number of measured distance angles
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 30;%60;
-WORLD_HEIGHT = 30;%60
+WORLD_WIDTH = 10;%60;
+WORLD_HEIGHT = 10;%60
 OBSTACLE_SEPARATION = 2;
 MIN_OBSTACLES = 2;
-MAX_OBSTACLES = 15;%35
-MAX_OBSTACLE_AREA = 40;%80
+MAX_OBSTACLES = 2;%35
+MAX_OBSTACLE_AREA = 2;%80
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 
 EPSILON = 0.1;
@@ -39,20 +40,20 @@ ACTION_SOUTH = [0, 1, 0];
 ACTION_SOUTHEAST = [-1, 1, 0];
 ACTION_EAST = [-1, 0, 0];
 ACTION_NORTHEAST = [-1, -1, 0];
-DIR_NORTH = pi / 2;
-DIR_NORTHWEST = pi / 4;
 DIR_WEST = 0;
-DIR_SOUTHWEST = 7 * pi / 4;
-DIR_SOUTH = 3 * pi / 2;
-DIR_SOUTHEAST = 5 * pi / 4;
-DIR_EAST = pi;
+DIR_NORTHWEST = pi / 4;
+DIR_NORTH = pi / 2;
 DIR_NORTHEAST = 3 * pi / 4;
+DIR_EAST = pi;
+DIR_SOUTHEAST = 5 * pi / 4;
+DIR_SOUTH = 3 * pi / 2;
+DIR_SOUTHWEST = 7 * pi / 4;
 
 actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
            ACTION_WEST; ACTION_SOUTHWEST; ACTION_SOUTH;...
            ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
-directions = [DIR_NORTH, DIR_NORTHWEST, DIR_WEST, DIR_SOUTHWEST,...
-              DIR_SOUTH, DIR_SOUTHEAST, DIR_EAST, DIR_NORTHEAST];
+directions = [DIR_WEST, DIR_NORTHWEST, DIR_NORTH, DIR_NORTHEAST,...
+              DIR_EAST, DIR_SOUTHEAST, DIR_SOUTH, DIR_SOUTHWEST];
 angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
 angles = 0:angleStep:(2 * pi - angleStep);
 
@@ -66,6 +67,7 @@ C = struct('EPSILON', EPSILON,...
            'ANGLES', length(angles),...
            'angles', angles,...
            'DISTS', DIST_QUANTIZE,...
+           'DIST_STEP', DIST_QUANT_STEP,...
            'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA,...
            'MIN_OBSTACLES', MIN_OBSTACLES,...
            'MAX_OBSTACLES', MAX_OBSTACLES,...
@@ -78,18 +80,33 @@ C = struct('EPSILON', EPSILON,...
 env = Environment(C);
 env.GenerateObstacles();
 imagesc(env.whichObstacles)
+set(gca, 'YDir', 'Normal')
 colormap Jet;
 colorbar;
 
 robot = WheeledRobot(env);
-robot.StartAt(env.start, pi/2);
+robot.StartAt(env.start, 0);
 distances = robot.ReadDistances(env);
 figure
 for i = 1:C.ANGLES
-   polarplot([C.angles(i), (C.angles(i)+0.001)], [0, distances(i)])
+   polarplot(pi - [C.angles(i), (C.angles(i)+0.001)], [0, distances(i)])
+   hold on
+end
+[distToGoal, dirToGoal, angle] = robot.GetBearing(env);
+polarplot([angle, (angle+0.001)], [0, distToGoal], '--k')
+polarplot([directions(dirToGoal), (directions(dirToGoal)+0.001)], [0, distToGoal], 'k',...
+   'LineWidth', 2)
+hold off
+
+qDistances = robot.QuantizedDistReadings(env);
+figure
+for i = 1:C.ANGLES
+   polarplot(pi - [C.angles(i), (C.angles(i)+0.001)], [0, qDistances(i)])
    hold on
 end
 hold off
+
+
 
 %{
 env.GenerateObstacles();
@@ -106,36 +123,10 @@ colorbar;
 %}
 stateActionValues = zeros(C.ANGLES, C.DISTS, C.DIRS, C.ACTIONS);
 
-%{
-startState = [WORLD_HEIGHT, 1];
-goalState = [WORLD_HEIGHT, WORLD_WIDTH];
-
-global actionRewards;
-actionRewards = zeros(WORLD_HEIGHT, WORLD_WIDTH, ACTIONS) - 1.0;
-actionRewards(WORLD_HEIGHT - 1, 2:(WORLD_WIDTH - 1), ACTION_DOWN) = CLIFF;
-actionRewards(WORLD_HEIGHT, 1, ACTION_RIGHT) = CLIFF;
-
-global actionDestination;
-actionDestination = zeros(WORLD_HEIGHT, WORLD_WIDTH, ACTIONS, 2);
-
-for i = 1:WORLD_HEIGHT
-   for j = 1:WORLD_WIDTH
-      actionDestination(i, j, ACTION_UP, :) = [max(i-1, 1), j];
-      actionDestination(i, j, ACTION_LEFT, :) = [i, max(j-1, 1)];
-      actionDestination(i, j, ACTION_RIGHT, :) = [i, min(j+1, WORLD_WIDTH)];
-      if i == WORLD_HEIGHT - 1 && j > 1 && j < WORLD_WIDTH
-         actionDestination(i, j, ACTION_DOWN, :) = startState(:);
-      else
-         actionDestination(i, j, ACTION_DOWN, :) = [min(i+1, WORLD_HEIGHT), j];
-      end
-   end
-end
-actionDestination(WORLD_HEIGHT, 1, ACTION_RIGHT, :) = startState(:);
-
 averageRange = 10;
 EPISODES = 100;
 RUNS = 10;
-
+%{
 rewardsSarsa = zeros(1, EPISODES);
 rewardsQLearning = zeros(1, EPISODES);
 fprintf('Runs remaining: ');
@@ -145,10 +136,10 @@ for run = 1:RUNS
    stateActionValuesQLearning = stateActionValues(:,:,:);
    for i = 1:EPISODES
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
-         false, ALPHA, startState, goalState, C);
+         false, env);
       rewardsSarsa(i) = rewardsSarsa(i) + max(Value, CLIFF);
-      [Value, stateActionValuesQLearning] = QLearning(stateActionValuesQLearning,...
-         ALPHA, startState, goalState, C);
+      [Value, stateActionValuesQLearning] = QLearning(...
+         stateActionValuesQLearning, env);
       rewardsQLearning(i) = rewardsQLearning(i) + max(Value, CLIFF);
    end
 end
