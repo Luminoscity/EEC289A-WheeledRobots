@@ -15,20 +15,22 @@
 clear
 close all
 PLOT_WORLD = true;
-PLOT_INITIAL_DISTANCES = true;
+PLOT_INITIAL_DISTANCES = false;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
 DIST_ANGLE_MEAS = 60;        % number of angles to measure distances at
 DIST_ANGLE_QUANTIZE = 16;    % number of quantized distance angles to
                              % record as part of the state
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 40;%60;
-WORLD_HEIGHT = 40;%60
+WORLD_WIDTH = 10;%40;%60;
+WORLD_HEIGHT = 10;%40;%60;
 OBSTACLE_SEPARATION = 2;
 MIN_OBSTACLES = 2;
-MAX_OBSTACLES = 15;%35
-MAX_OBSTACLE_AREA = 40;%80
+MAX_OBSTACLES = 3;%15;%35;
+MAX_OBSTACLE_AREA = 20;%40;%80;
 DISTANCE_SENSOR_RESOLUTION = 0.1;
+ROUND_MAGNITUDE = 1.49;
+REWARD_FLOOR = -200;
 
 EPSILON = 0.1;
 ALPHA = 0.5;
@@ -82,12 +84,17 @@ C = struct('EPSILON', EPSILON,...
            'OBS_SPACE', OBSTACLE_SEPARATION,...
            'WORLD_WIDTH', WORLD_WIDTH,...
            'WORLD_HEIGHT', WORLD_HEIGHT,...
-           'DIST_RES', DISTANCE_SENSOR_RESOLUTION);
+           'DIST_RES', DISTANCE_SENSOR_RESOLUTION,...
+           'ROUND_MAGNITUDE', ROUND_MAGNITUDE);
 
 %------------------------MAIN---------------------------
 env = Environment(C);
-env.GenerateObstacles();
-   
+error = env.GenerateObstacles();
+if error > 0
+   fprintf('\nWorld Creation failed, please run again\n')
+   return
+end
+
 if PLOT_WORLD
    imagesc(env.whichObstacles)
    set(gca, 'YDir', 'Normal')
@@ -135,26 +142,33 @@ imagesc(env.whichObstacles)
 colormap Jet
 colorbar;
 %}
-stateActionValues = zeros(C.ANGLES, C.DISTS, C.DIRS, C.ACTIONS);
+stateActionValues = zeros(C.QUANT_ANGLES, C.QUANT_ANGLES, C.DIRS, ...
+   C.ACTIONS);
 
 averageRange = 10;
 EPISODES = 100;
 RUNS = 10;
-%{
+
 rewardsSarsa = zeros(1, EPISODES);
 rewardsQLearning = zeros(1, EPISODES);
 fprintf('Runs remaining: ');
 for run = 1:RUNS
-   fprintf('%d ', RUNS - run + 1);
+   fprintf('%d:', RUNS - run + 1);
    stateActionValuesSarsa = stateActionValues(:,:,:,:);
    stateActionValuesQLearning = stateActionValues(:,:,:,:);
    for i = 1:EPISODES
+      if mod(i - 1, 10) == 0
+         fprintf('%d ', EPISODES - i + 1);
+      end
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
          false, robot, env);
-      rewardsSarsa(i) = rewardsSarsa(i) + max(Value, CLIFF);
+      robot.StartAt(env.start, 0);
+      rewardsSarsa(i) = rewardsSarsa(i) + max(Value, REWARD_FLOOR);
+      
       [Value, stateActionValuesQLearning] = QLearning(...
          stateActionValuesQLearning, robot, env);
-      rewardsQLearning(i) = rewardsQLearning(i) + max(Value, CLIFF);
+      robot.StartAt(env.start, 0);
+      rewardsQLearning(i) = rewardsQLearning(i) + max(Value, REWARD_FLOOR);
    end
 end
 fprintf('\n');
@@ -178,4 +192,3 @@ xlabel('Episodes');
 ylabel('Sum of Rewards During Episode');
 title('Cliff Walking');
 hold off
-%}

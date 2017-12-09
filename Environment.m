@@ -11,17 +11,18 @@ classdef Environment < handle
       start
       goal
    end
-   %{
+   
    properties (Access = private)
-      whichObstacles    %Which obstacle is at each coordinate
+      %whichObstacles    %Which obstacle is at each coordinate
+      maxAttempts = 1000;
    end
-   %}
+   
    methods
       function obj = Environment(constants)
          obj.C = constants;
       end
       
-      function GenerateObstacles(obj)
+      function error = GenerateObstacles(obj)
          obj.obstacles = false(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
          obstCount = randi([obj.C.MIN_OBSTACLES, obj.C.MAX_OBSTACLES]);
          obj.whichObstacles = zeros(obj.C.WORLD_HEIGHT, obj.C.WORLD_WIDTH);
@@ -31,9 +32,15 @@ classdef Environment < handle
             %generate obstacles leaving some space between obstacles
             area = 0;
             count = 0;
-            while count == 0
+            attempts = 0;
+            while count == 0 && attempts < obj.maxAttempts
                [count, positions] = obj.OkayPositions(randi(...
                   obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs);
+               attempts = attempts + 1;
+            end
+            if attempts >= obj.maxAttempts
+               error = 1;
+               return
             end
             
             while area < obstacleArea
@@ -52,20 +59,35 @@ classdef Environment < handle
          end
          
          count = 0;
-         while count == 0
+         attempts = 0;
+         while count == 0 && attempts < obj.maxAttempts
             [count, positions] = obj.OkayPositions(randi(...
                obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+2);
+            attempts = attempts + 1;
          end
+         if attempts >= obj.maxAttempts
+            error = 1;
+            return
+         end
+         
          obj.start = positions{randi(count)};
          obj.whichObstacles(obj.start(2), obj.start(1)) = obstCount + 2;
          
          count = 0;
-         while count == 0
+         attempts = 0;
+         while count == 0 && attempts < obj.maxAttempts
             [count, positions] = obj.OkayPositions(randi(...
                obj.C.WORLD_WIDTH), randi(obj.C.WORLD_HEIGHT), obs+4);
+            attempts = attempts + 1;
          end
+         if attempts >= obj.maxAttempts
+            error = 1;
+            return
+         end
+         
          obj.goal = positions{randi(count)};
          obj.whichObstacles(obj.goal(2), obj.goal(1)) = obstCount + 4;
+         error = 0;
       end
       
       function [count, positions] = OkayPositions(obj, x, y, current)

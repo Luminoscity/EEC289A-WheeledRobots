@@ -32,14 +32,16 @@ classdef WheeledRobot < handle
          end
       end
       
-      function [reward, closeIdx, farIdx, dirToGoal] = Move(obj, action,...
-                env)
+      function [reward, closeIdx, farIdx, dirToGoal] = Move(obj, ...
+                actionIdx, env)
+         M = env.C.ROUND_MAGNITUDE;
+         action = env.C.actions(actionIdx, :);
          reward = 0;
          %adjust position
-         angle = action(1);
-         if angle >= 0
-            obj.position = obj.position + [floor(1.5*cos(angle)),...
-               floor(1.5*sin(angle))];
+         if action(1) >= 0
+            angle = action(1) + obj.orientation;
+            obj.position = obj.position + double([int32(M * cos(angle)),...
+               int32(M * sin(angle))]);
          end
          %adjust orientation
          obj.orientation = mod(obj.orientation + action(2), 2*pi);

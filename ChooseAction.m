@@ -4,15 +4,19 @@
 
 function A = ChooseAction(state, stateActionValues, robot, env)
    destinations = zeros(env.C.ACTIONS, 2);
+   M = env.C.ROUND_MAGNITUDE;
+   %determine possible next positions
    for i = 1:env.C.ACTIONS
       if env.C.actions(i,1) < 0
          destinations(i,:) = robot.position;
       else
          angle = env.C.actions(i,1) + robot.orientation;
-         destinations(i,:) = robot.position + [floor(1.5*cos(angle)),...
-            floor(1.5*sin(angle))];
+         destinations(i,:) = robot.position + double([int32(M * ...
+            cos(angle)), int32(M * sin(angle))]);
       end
    end
+   %determine actions that don't fall off the world or move towards an
+   %object 0 cm away
    numPossible = 0;
    possibleActions = zeros(1, env.C.ACTIONS);
    for i = 1:env.C.ACTIONS
@@ -26,13 +30,25 @@ function A = ChooseAction(state, stateActionValues, robot, env)
       end
    end
    possibleActions = possibleActions(1:numPossible);
+   
+   %choose action based on epsilon-greedy
    if binornd(1, env.C.EPSILON) == 1
-      A = randi(env.C.ACTIONS);
+      A = datasample(possibleActions, 1);
    else
+      
+      sz = size(stateActionValues);
+      if length(sz) < 4 || state(1) > sz(1) || state(2) > sz(2) || state(3)...
+            > sz(3) || max(possibleActions) > sz(4)
+         fprintf('')
+      end
+      
       values = stateActionValues(state(1), state(2), state(3), ...
          possibleActions);
       maxValue = max(values);
       maxActions = find(values == maxValue);
-      A = datasample(maxActions, 1);
+      if isempty(maxActions)
+         fprintf('')
+      end
+      A = possibleActions(datasample(maxActions, 1));
    end
 end
