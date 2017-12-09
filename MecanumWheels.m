@@ -14,7 +14,7 @@
 %----------------------CONSTANTS---------------------------
 clear
 close all
-PLOT_WORLD = false;
+PLOT_WORLD = true;
 PLOT_INITIAL_DISTANCES = false;
 PROGRESS_STEP = 5;
 WORLD_IDX_START = 1;
@@ -24,17 +24,17 @@ DIST_ANGLE_MEAS = 60;        % number of angles to measure distances at
 DIST_ANGLE_QUANTIZE = 16;    % number of quantized distance angles to
                              % record as part of the state
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25];
-WORLD_HEIGHT = [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25];
+WORLD_WIDTH = [10,10,10,11,11,11,12,12,12,13,13,13,14,14,14,15,15,15,16,16,16,17,18,19,20,21,22,23,24,25];
+WORLD_HEIGHT = [10,10,10,11,11,11,12,12,12,13,13,13,14,14,14,15,15,15,16,16,16,17,18,19,20,21,22,23,24,25];
 OBSTACLE_SEPARATION = 2;
-MIN_OBSTACLES = [1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2];
-MAX_OBSTACLES = [1,2,2,3,4,5,6,7,8,9,10,11,12,13,14,15];%15;%35;
-MAX_OBSTACLE_AREA = [10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40];
+MIN_OBSTACLES = [1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2];
+MAX_OBSTACLES = [1,1,1,2,2,2,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,8,9,10,11,12,13,14,15];%15;%35;
+MAX_OBSTACLE_AREA = [10,10,10,12,12,12,14,14,14,16,16,16,18,18,18,20,20,20,22,22,22,24,26,28,30,32,34,36,38,40];
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 ROUND_MAGNITUDE = 1.49;
 REWARD_FLOOR = -200;
 
-EPISODES = 6;
+EPISODES = 100;
 RUNS = 1;
 
 EPSILON = 0.1;
@@ -76,7 +76,7 @@ stateActionValuesQLearning = stateActionValues(:,:,:,:);
 wIdx = 1;
 for world = WORLD_IDX_START:(WORLD_IDX_START + length(WORLD_WIDTH) - 1)
 
-
+worldString = sprintf("World%d", world);
 
 angleStep = 2 * pi / DIST_ANGLE_MEAS;
 angles = 0:angleStep:(2 * pi - angleStep);
@@ -113,7 +113,9 @@ while error > 0
 end
 
 if PLOT_WORLD
+   figure
    imagesc(env.whichObstacles)
+   title(worldString);
    set(gca, 'YDir', 'Normal')
    colormap Jet;
    colorbar;
@@ -200,10 +202,11 @@ fprintf('\nTime for World %d (%d runs, %d episodes): %f seconds\n', ...
 
 %--------------------SAVE RESULTS--------------------------------
 saveString = sprintf("World%d.mat", world);
+
 save(saveString,'env', 'sarsaResults', 'qLearningResults', 'EPISODES', ...
    'RUNS', 'tstop')
 wIdx = wIdx + 1;
-end
+
 %--------------------PLOT RESULTS--------------------------------
 figure
 plot(sarsaResults)
@@ -212,5 +215,8 @@ plot(qLearningResults)
 legend('Sarsa', 'Q-Learning');
 xlabel('Episodes');
 ylabel('Sum of Rewards During Episode');
+str = "Mecanum Wheels - " + worldString;
 title('Mecanum Wheels');
 hold off
+drawnow()
+end
