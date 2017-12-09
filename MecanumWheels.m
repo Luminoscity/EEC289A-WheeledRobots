@@ -14,32 +14,36 @@
 %----------------------CONSTANTS---------------------------
 clear
 close all
+PLOT_WORLD = true;
+PLOT_INITIAL_DISTANCES = true;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
-DIST_ANGLE_QUANTIZE = 60;    % number of measured distance angles
+DIST_ANGLE_MEAS = 60;        % number of angles to measure distances at
+DIST_ANGLE_QUANTIZE = 16;    % number of quantized distance angles to
+                             % record as part of the state
 TURN_ANGLE = pi / 4;         % 45 degree turns
-WORLD_WIDTH = 10;%60;
-WORLD_HEIGHT = 10;%60
+WORLD_WIDTH = 40;%60;
+WORLD_HEIGHT = 40;%60
 OBSTACLE_SEPARATION = 2;
 MIN_OBSTACLES = 2;
-MAX_OBSTACLES = 2;%35
-MAX_OBSTACLE_AREA = 2;%80
+MAX_OBSTACLES = 15;%35
+MAX_OBSTACLE_AREA = 40;%80
 DISTANCE_SENSOR_RESOLUTION = 0.1;
 
 EPSILON = 0.1;
 ALPHA = 0.5;
 GAMMA = 1;
 
-ACTION_NORTH = [0, 1, 0];
-ACTION_LEFT = [0, 0, -pi/4];   %turn left slightly
-ACTION_RIGHT = [0, 0, pi/4];  %turn right slightly
-ACTION_NORTHWEST = [1, -1, 0];
-ACTION_WEST = [1, 0, 0];
-ACTION_SOUTHWEST = [1, 1, 0];
-ACTION_SOUTH = [0, 1, 0];
-ACTION_SOUTHEAST = [-1, 1, 0];
-ACTION_EAST = [-1, 0, 0];
-ACTION_NORTHEAST = [-1, -1, 0];
+ACTION_NORTH = [2 * TURN_ANGLE, 0];
+ACTION_LEFT = [-1, -TURN_ANGLE];   %turn left slightly
+ACTION_RIGHT = [-1, TURN_ANGLE];   %turn right slightly
+ACTION_NORTHWEST = [TURN_ANGLE, 0];
+ACTION_WEST = [0, 0];
+ACTION_SOUTHWEST = [7 * TURN_ANGLE, 0];
+ACTION_SOUTH = [6 * TURN_ANGLE, 0];
+ACTION_SOUTHEAST = [5 * pi/4, 0];
+ACTION_EAST = [4 * TURN_ANGLE, 0];
+ACTION_NORTHEAST = [3 * pi/4, 0];
 DIR_WEST = 0;
 DIR_NORTHWEST = pi / 4;
 DIR_NORTH = pi / 2;
@@ -54,8 +58,10 @@ actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
            ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
 directions = [DIR_WEST, DIR_NORTHWEST, DIR_NORTH, DIR_NORTHEAST,...
               DIR_EAST, DIR_SOUTHEAST, DIR_SOUTH, DIR_SOUTHWEST];
-angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
+angleStep = 2 * pi / DIST_ANGLE_MEAS;
 angles = 0:angleStep:(2 * pi - angleStep);
+angleStep = 2 * pi / DIST_ANGLE_QUANTIZE;
+qAngles = 0:angleStep:(2 * pi - angleStep);
 
 C = struct('EPSILON', EPSILON,...
            'ALPHA', ALPHA,...
@@ -66,6 +72,8 @@ C = struct('EPSILON', EPSILON,...
            'directions', directions,...
            'ANGLES', length(angles),...
            'angles', angles,...
+           'QUANT_ANGLES', length(qAngles),...
+           'qAngles', qAngles,...
            'DISTS', DIST_QUANTIZE,...
            'DIST_STEP', DIST_QUANT_STEP,...
            'MAX_OBSTACLE_AREA', MAX_OBSTACLE_AREA,...
@@ -79,33 +87,39 @@ C = struct('EPSILON', EPSILON,...
 %------------------------MAIN---------------------------
 env = Environment(C);
 env.GenerateObstacles();
-imagesc(env.whichObstacles)
-set(gca, 'YDir', 'Normal')
-colormap Jet;
-colorbar;
+   
+if PLOT_WORLD
+   imagesc(env.whichObstacles)
+   set(gca, 'YDir', 'Normal')
+   colormap Jet;
+   colorbar;
+end
 
 robot = WheeledRobot(env);
 robot.StartAt(env.start, 0);
-distances = robot.ReadDistances(env);
-figure
-for i = 1:C.ANGLES
-   polarplot(pi - [C.angles(i), (C.angles(i)+0.001)], [0, distances(i)])
-   hold on
-end
-[distToGoal, dirToGoal, angle] = robot.GetBearing(env);
-polarplot([angle, (angle+0.001)], [0, distToGoal], '--k')
-polarplot([directions(dirToGoal), (directions(dirToGoal)+0.001)], [0, distToGoal], 'k',...
-   'LineWidth', 2)
-hold off
 
-qDistances = robot.QuantizedDistReadings(env);
-figure
-for i = 1:C.ANGLES
-   polarplot(pi - [C.angles(i), (C.angles(i)+0.001)], [0, qDistances(i)])
-   hold on
-end
-hold off
+if PLOT_INITIAL_DISTANCES
+   distances = robot.ReadDistances(env);
+   figure
+   for i = 1:C.ANGLES
+      polarplot([C.angles(i), (C.angles(i)+0.001)], [0, distances(i)])
+      hold on
+   end
+   [dirToGoal, angle] = robot.GoalBearing(env);
+   polarplot([angle, (angle+0.001)], [0, robot.distanceToGoal], '--k')
+   polarplot([directions(dirToGoal), (directions(dirToGoal)+0.001)], ...
+      [0, robot.distanceToGoal], 'k', 'LineWidth', 2)
+   hold off
 
+
+   qDistances = robot.QuantizedDistReadings(env);
+   figure
+   for i = 1:C.ANGLES
+      polarplot([C.angles(i), (C.angles(i)+0.001)], [0, qDistances(i)])
+      hold on
+   end
+   hold off
+end
 
 
 %{
@@ -132,14 +146,14 @@ rewardsQLearning = zeros(1, EPISODES);
 fprintf('Runs remaining: ');
 for run = 1:RUNS
    fprintf('%d ', RUNS - run + 1);
-   stateActionValuesSarsa = stateActionValues(:,:,:);
-   stateActionValuesQLearning = stateActionValues(:,:,:);
+   stateActionValuesSarsa = stateActionValues(:,:,:,:);
+   stateActionValuesQLearning = stateActionValues(:,:,:,:);
    for i = 1:EPISODES
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
-         false, env);
+         false, robot, env);
       rewardsSarsa(i) = rewardsSarsa(i) + max(Value, CLIFF);
       [Value, stateActionValuesQLearning] = QLearning(...
-         stateActionValuesQLearning, env);
+         stateActionValuesQLearning, robot, env);
       rewardsQLearning(i) = rewardsQLearning(i) + max(Value, CLIFF);
    end
 end
@@ -155,14 +169,13 @@ for i = (averageRange + 1):EPISODES
 end
 
 %--------------------PLOT RESULTS--------------------------------
-%{
-plot(sarsaResults);
+figure
+plot(sarsaResults)
 hold on
-plot(qLearningResults);
+plot(qLearningResults)
 legend('Sarsa', 'Q-Learning');
 xlabel('Episodes');
 ylabel('Sum of Rewards During Episode');
 title('Cliff Walking');
-%}
 hold off
 %}

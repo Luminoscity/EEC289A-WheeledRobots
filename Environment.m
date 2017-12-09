@@ -7,6 +7,7 @@ classdef Environment < handle
       C
       obstacles            %Is there an obstacle at each coordinate
       whichObstacles       %Which obstacle is at each coordinate
+      numObstacles
       start
       goal
    end

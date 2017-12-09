@@ -1,12 +1,16 @@
-function [R, values] = Sarsa(stateActionValues, expected, env)
+function [R, values] = Sarsa(stateActionValues, expected, robot, env)
    stepSize = env.C.ALPHA;
    global actionDestination;
    global actionRewards;
    R = 0.0;
-   currentState = env.start(:)';
+   [goalDist, goalDir, ~] = robot.GoalBearing(env);
+   [closeIdx, close, farIdx, ~] = robot.ReadCloseFarAngles(env);
+   currentState = [closeIdx, farIdx, goalDir];
+   currentPos = robot.position(:)';
+   goalPos = env.goal(:)';
    currentAction = ChooseAction(currentState, stateActionValues, C);
    
-   while currentState(1) ~= goalState(1) || currentState(2) ~= goalState(2)
+   while currentPos(1) ~= goalPos(1) || currentPos(2) ~= goalPos(2)
       newState = [0, 0];
       newState(1:2) = actionDestination(currentState(1), currentState(2), currentAction, :);
       newAction = ChooseAction(newState, stateActionValues, C);
