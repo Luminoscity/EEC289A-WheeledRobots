@@ -85,7 +85,7 @@ fileString = sprintf('World%d-Mec.mat', world);
 worldString = sprintf('World%d', world);
 load(fileString)
 
-EPISODES = 5;
+EPISODES = 100;
 RUNS = 1;
 
 angleStep = 2 * pi / DIST_ANGLE_MEAS;
@@ -126,12 +126,13 @@ while error > 0
 end
 %}
 if PLOT_WORLD
-   figure
+   subplot(1, 2, 1)
    imagesc(env.whichObstacles)
-   title(worldString);
+   title(worldString)
    set(gca, 'YDir', 'Normal')
-   colormap Jet;
-   colorbar;
+   colormap Jet
+   colorbar
+   drawnow()
 end
 
 robot = WheeledRobot(env);
@@ -172,12 +173,11 @@ fprintf('World %d Runs remaining: ', world);
 for run = 1:RUNS
    fprintf('%d:', RUNS - run + 1);
    for i = 1:EPISODES
-      fprintf('%d ', EPISODES - i + 1);
-      %{
+      
       if mod(i - 1, PROGRESS_STEP) == 0
          fprintf('%d ', EPISODES - i + 1);
       end
-      %}
+      
       
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
          false, robot, env);
@@ -213,14 +213,14 @@ fprintf('\nTime for World %d (%d runs, %d episodes): %f seconds\n', ...
    world, RUNS, EPISODES, tstopSQE)
 
 %--------------------SAVE RESULTS--------------------------------
-saveString = sprintf('DiffWorld%d.mat', world);
+saveString = sprintf('SQE-Diff/DiffWorld%d.mat', world);
 
 save(saveString, 'env', 'sarsaResults', 'qLearningResults', 'eSarsaResults', ...
    'EPISODES', 'RUNS', 'tstopSQE')
 wIdx = wIdx + 1;
 
 %--------------------PLOT RESULTS--------------------------------
-figure
+subplot(1, 2, 2)
 plot(sarsaResults)
 hold on
 plot(qLearningResults)
