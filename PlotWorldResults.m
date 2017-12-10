@@ -22,7 +22,8 @@ subplot(1, 2, 2)
 plot(sarsaResults)
 hold on
 plot(qLearningResults)
-legend('Sarsa', 'Q-Learning')
+plot(eSarsaResults)
+legend('Sarsa', 'Q-Learning', 'Expected Sarsa');
 xlabel('Episodes')
 ylabel('Sum of Rewards During Episode')
 str = strcat('Mecanum Wheels - ', worldString);
