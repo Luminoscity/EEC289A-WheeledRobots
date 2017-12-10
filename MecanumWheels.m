@@ -216,6 +216,7 @@ for i = (averageRange + 1):EPISODES
    %}
    eSarsaResults(i) = mean(rewardsESarsa((i - averageRange):i));
 end
+tstopSQ = tstop;
 tstopE = toc(tstart);
 fprintf('\nTime for World %d (%d runs, %d episodes): %f seconds\n', ...
    world, RUNS, EPISODES, tstopE)
@@ -224,7 +225,7 @@ fprintf('\nTime for World %d (%d runs, %d episodes): %f seconds\n', ...
 saveString = sprintf('World%d.mat', world);
 
 save(saveString, 'env', 'sarsaResults', 'qLearningResults', 'eSarsaResults', ...
-   'EPISODES', 'RUNS', 'tstopE')
+   'EPISODES', 'RUNS', 'tstopE', 'tstopSQ')
 wIdx = wIdx + 1;
 end
 %--------------------PLOT RESULTS--------------------------------
