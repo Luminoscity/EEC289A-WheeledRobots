@@ -2,13 +2,16 @@
 % 11 December 2017
 % EEC289A - UC Davis
 
-world = 20;
-loadString = sprintf("World%d.mat", world);
-load(loadString)
+WORLD_START = 24;
+WORLD_END = 28;
 
+for world = WORLD_START:WORLD_END
+loadString = sprintf('World%d-Mec.mat', world);
+load(loadString)
+figure
 subplot(1, 2, 1)
 imagesc(env.whichObstacles)
-worldString = sprintf("World%d", world);
+worldString = sprintf('World%d', world);
 axis square
 title(worldString)
 set(gca, 'YDir', 'Normal')
@@ -22,6 +25,7 @@ plot(qLearningResults)
 legend('Sarsa', 'Q-Learning')
 xlabel('Episodes')
 ylabel('Sum of Rewards During Episode')
-str = "Mecanum Wheels - " + worldString;
+str = strcat('Mecanum Wheels - ', worldString);
 title(str)
 hold off
+end
