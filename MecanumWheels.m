@@ -14,7 +14,7 @@
 %----------------------CONSTANTS---------------------------
 clear
 close all
-PLOT_WORLD = true;
+PLOT_WORLD = false;
 PLOT_INITIAL_DISTANCES = false;
 PROGRESS_STEP = 5;
 WORLD_IDX_START = 1;
@@ -69,14 +69,18 @@ actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
 
 stateActionValues = zeros(DIST_ANGLE_QUANTIZE, DIST_ANGLE_QUANTIZE, ...
    length(directions), length(actions));
-
+%{
 stateActionValuesSarsa = stateActionValues(:,:,:,:);
 stateActionValuesQLearning = stateActionValues(:,:,:,:);
+%}
+stateActionValuesESarsa = stateActionValues(:,:,:,:);
 
 wIdx = 1;
 for world = WORLD_IDX_START:(WORLD_IDX_START + length(WORLD_WIDTH) - 1)
 
-worldString = sprintf("World%d", world);
+fileString = sprintf('World%d-Mec.mat', world);
+load(fileString)
+worldString = sprintf('World%d', world);
 
 angleStep = 2 * pi / DIST_ANGLE_MEAS;
 angles = 0:angleStep:(2 * pi - angleStep);
@@ -106,12 +110,13 @@ C = struct('EPSILON', EPSILON,...
            'ROUND_MAGNITUDE', ROUND_MAGNITUDE);
 
 %------------------------MAIN---------------------------
+%{
 env = Environment(C);
 error = 1;
 while error > 0
    error = env.GenerateObstacles();
 end
-
+%}
 if PLOT_WORLD
    figure
    imagesc(env.whichObstacles)
@@ -161,14 +166,17 @@ imagesc(env.whichObstacles)
 colormap Jet
 colorbar;
 %}
-stateActionValues = zeros(C.QUANT_ANGLES, C.QUANT_ANGLES, C.DIRS, ...
-   C.ACTIONS);
+%stateActionValues = zeros(C.QUANT_ANGLES, C.QUANT_ANGLES, C.DIRS, ...
+%   C.ACTIONS);
 
 averageRange = 10;
 
 tstart = tic;
+%{
 rewardsSarsa = zeros(1, EPISODES);
 rewardsQLearning = zeros(1, EPISODES);
+%}
+rewardsESarsa = zeros(1, EPISODES);
 fprintf('World %d Runs remaining: ', world);
 for run = 1:RUNS
    fprintf('%d:', RUNS - run + 1);
@@ -176,6 +184,7 @@ for run = 1:RUNS
       if mod(i - 1, PROGRESS_STEP) == 0
          fprintf('%d ', EPISODES - i + 1);
       end
+      %{
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
          false, robot, env);
       robot.StartAt(env.start, 0);
@@ -185,38 +194,50 @@ for run = 1:RUNS
          stateActionValuesQLearning, robot, env);
       robot.StartAt(env.start, 0);
       rewardsQLearning(i) = rewardsQLearning(i) + max(Value, REWARD_FLOOR);
+      %}
+      [Value, stateActionValuesESarsa] = Sarsa(stateActionValuesESarsa,...
+         true, robot, env);
+      robot.StartAt(env.start, 0);
+      rewardsESarsa(i) = rewardsESarsa(i) + max(Value, REWARD_FLOOR);
    end
 end
-
+%{
 rewardsSarsa = rewardsSarsa ./ RUNS;
 rewardsQLearning = rewardsQLearning ./ RUNS;
 sarsaResults = rewardsSarsa(:)';
 qLearningResults = rewardsQLearning(:)';
+%}
+rewardsESarsa = rewardsESarsa ./ RUNS;
+eSarsaResults = rewardsESarsa(:)';
 for i = (averageRange + 1):EPISODES
+   %{
    sarsaResults(i) = mean(rewardsSarsa((i - averageRange):i));
    qLearningResults(i) = mean(rewardsQLearning((i - averageRange):i));
+   %}
+   eSarsaResults(i) = mean(rewardsESarsa((i - averageRange):i));
 end
-tstop = toc(tstart);
+tstopE = toc(tstart);
 fprintf('\nTime for World %d (%d runs, %d episodes): %f seconds\n', ...
-   world, RUNS, EPISODES, tstop)
+   world, RUNS, EPISODES, tstopE)
 
 %--------------------SAVE RESULTS--------------------------------
-saveString = sprintf("World%d.mat", world);
+saveString = sprintf('World%d.mat', world);
 
-save(saveString,'env', 'sarsaResults', 'qLearningResults', 'EPISODES', ...
-   'RUNS', 'tstop')
+save(saveString, 'env', 'sarsaResults', 'qLearningResults', 'eSarsaResults', ...
+   'EPISODES', 'RUNS', 'tstopE')
 wIdx = wIdx + 1;
-
+end
 %--------------------PLOT RESULTS--------------------------------
 figure
 plot(sarsaResults)
 hold on
 plot(qLearningResults)
-legend('Sarsa', 'Q-Learning');
+plot(eSarsaResults)
+legend('Sarsa', 'Q-Learning', 'Expected Sarsa');
 xlabel('Episodes');
 ylabel('Sum of Rewards During Episode');
-str = "Mecanum Wheels - " + worldString;
+str = strcat('Mecanum Wheels - ', worldString);
 title('Mecanum Wheels');
 hold off
 drawnow()
-end
+

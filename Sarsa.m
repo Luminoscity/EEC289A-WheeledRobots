@@ -22,8 +22,8 @@ function [R, values] = Sarsa(stateActionValues, expected, robot, env)
          actionValues = zeros(1, env.C.ACTIONS);
          actionValues(:) = stateActionValues(newState(1), newState(2), ...
             newState(3), :);
-         bestActions = find(actionValues == max(ActionValues));
-         for a = 1:C.ACTIONS
+         bestActions = find(actionValues == max(actionValues));
+         for a = 1:env.C.ACTIONS
             if ismember(a, bestActions)
                valueTarget = valueTarget + ((1.0 - env.C.EPSILON) / ...
                   size(bestActions, 2) + env.C.EPSILON / env.C.ACTIONS) ...
