@@ -19,7 +19,8 @@ PLOT_INITIAL_DISTANCES = false;
 MECANUM = [true,false];              %false for differential wheels
 PROGRESS_STEP = 10;
 WORLD_IDX_START = 1;
-%MAX_PARAM = 15;
+STATE_DEFINITION = 2;
+MOVE_DRAW = 25;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
 DIST_ANGLE_MEAS = 60;        % number of angles to measure distances at
@@ -68,12 +69,17 @@ if MECANUM(typeIndex)
               ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
    wheelType = 'Mecanum';
 else
-   actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT];
+   actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_SOUTH];
    wheelType = 'Differential';
 end
 
+if STATE_DEFINITION == 1
 stateActionValues = zeros(DIST_ANGLE_QUANTIZE, DIST_ANGLE_QUANTIZE, ...
    length(directions), length(actions));
+else
+stateActionValues = zeros(DIST_ANGLE_QUANTIZE, DIST_ANGLE_QUANTIZE, ...
+   length(directions), DIST_QUANTIZE, DIST_QUANTIZE, length(actions));
+end
 
 
 
@@ -124,9 +130,15 @@ fprintf('Runs:Episodes Remaining ');
 figure
 for run = 1:RUNS
    fprintf(' %d:', RUNS - run + 1);
-   stateActionValuesSarsa = stateActionValues(:,:,:,:);
-   stateActionValuesQLearning = stateActionValues(:,:,:,:);
-   stateActionValuesESarsa = stateActionValues(:,:,:,:);
+   if STATE_DEFINITION == 1
+      stateActionValuesSarsa = stateActionValues(:,:,:,:);
+      stateActionValuesQLearning = stateActionValues(:,:,:,:);
+      stateActionValuesESarsa = stateActionValues(:,:,:,:);
+   else
+      stateActionValuesSarsa = stateActionValues(:,:,:,:,:,:);
+      stateActionValuesQLearning = stateActionValues(:,:,:,:,:,:);
+      stateActionValuesESarsa = stateActionValues(:,:,:,:,:,:);
+   end
    for i = 1:EPISODES
       if mod(i - 1, PROGRESS_STEP) == 0
          fprintf('%d ', EPISODES - i + 1);
@@ -147,17 +159,18 @@ for run = 1:RUNS
       drawnow()
       
       [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
-         false, robot, env);
+         false, robot, env, STATE_DEFINITION, worldString, MOVE_DRAW);
       robot.StartAt(env.start, 0);
       rewardsSarsa(i) = rewardsSarsa(i) + max(Value, REWARD_FLOOR);
       
       [Value, stateActionValuesQLearning] = QLearning(...
-         stateActionValuesQLearning, robot, env);
+         stateActionValuesQLearning, robot, env, STATE_DEFINITION, ...
+         worldString, MOVE_DRAW);
       robot.StartAt(env.start, 0);
       rewardsQLearning(i) = rewardsQLearning(i) + max(Value, REWARD_FLOOR);
       
       [Value, stateActionValuesESarsa] = Sarsa(stateActionValuesESarsa,...
-         true, robot, env);
+         true, robot, env, STATE_DEFINITION, worldString, MOVE_DRAW);
       robot.StartAt(env.start, 0);
       rewardsESarsa(i) = rewardsESarsa(i) + max(Value, REWARD_FLOOR);
    end
@@ -181,9 +194,9 @@ fprintf('\nTime for %s Wheels (%d runs, %d episodes): %f seconds\n', ...
 
 %--------------------SAVE RESULTS--------------------------------
 if MECANUM(typeIndex)
-   saveString = sprintf('MecResults%dRuns%dWorlds.mat', RUNS, EPISODES);
+   saveString = sprintf('MecST2Results%dRuns%dWorlds.mat', RUNS, EPISODES);
 else
-   saveString = sprintf('DiffResults%dRuns%dWorlds.mat', RUNS, EPISODES);
+   saveString = sprintf('DiffST2Results%dRuns%dWorlds.mat', RUNS, EPISODES);
 end
 C = env.C;
 save(saveString, 'C', 'sarsaResults', 'qLearningResults', 'eSarsaResults', ...

@@ -32,8 +32,28 @@ classdef WheeledRobot < handle
          end
       end
       
-      function [reward, closeIdx, farIdx, dirToGoal] = Move(obj, ...
-                actionIdx, env)
+      function lastShown = ShowWorld(obj, lastPosition, env, titleStr)
+         env.whichObstacles(lastPosition(2), lastPosition(1)) = 0;
+         env.whichObstacles(env.start(2), env.start(1)) = ...
+            env.numObstacles + 2;
+         env.whichObstacles(obj.position(2), obj.position(1)) = ...
+            env.numObstacles + 1;
+         
+         imagesc(env.whichObstacles)
+         if nargin > 3
+            title(titleStr)
+         else
+            title('The World');
+         end
+         set(gca, 'YDir', 'Normal')
+         colormap Jet
+         colorbar
+         drawnow()
+         lastShown = obj.position(:)';
+      end
+      
+      function [reward, closeIdx, farIdx, dirToGoal, close, far] ...
+              = Move(obj, actionIdx, env)
          M = env.C.ROUND_MAGNITUDE;
          action = env.C.actions(actionIdx, :);
          reward = 0;
@@ -46,13 +66,13 @@ classdef WheeledRobot < handle
          %adjust orientation
          obj.orientation = mod(obj.orientation + action(2), 2*pi);
          %recalculate state
-         close = obj.closest;
-         [closeIdx, farIdx] = obj.ReadCloseFarAngles(env);
+         prevClosest = obj.closest;
+         [closeIdx, farIdx, close, far] = obj.ReadCloseFarAngles(env);
          dist = obj.distanceToGoal;
          [dirToGoal, ~] = obj.GoalBearing(env);
          
          %determine reward
-         if obj.closest < close || obj.distanceToGoal > dist
+         if obj.closest < prevClosest || obj.distanceToGoal > dist
             reward = -1;
          elseif isequal(obj.position, env.goal)
             reward = 1;
@@ -88,7 +108,8 @@ classdef WheeledRobot < handle
          distanceReadings = uint8(min(floor(divided) + 1, env.C.DISTS));
       end
       
-      function [closeIdx, farIdx] = ReadCloseFarAngles(obj, env)
+      function [closeIdx, farIdx, close, far] = ReadCloseFarAngles...
+              (obj, env)
          distanceReadings = obj.ReadDistances(env);
          %pick out angles of min and max distances
          [obj.closest, closeI] = min(distanceReadings);
@@ -96,13 +117,16 @@ classdef WheeledRobot < handle
          angles = [env.C.qAngles(:)', (2*pi)];
          
          %quantize angles
+         close = min(floor(obj.closest / env.C.DIST_STEP) + 1, ...
+             env.C.DISTS);
+         far = min(floor(obj.farthest / env.C.DIST_STEP) + 1, ...
+             env.C.DISTS);
          [~, closeIdx] = min(abs(angles - env.C.angles(closeI)));
          closeIdx = max(mod(closeIdx, env.C.QUANT_ANGLES + 1), 1);
          [~, farIdx] = min(abs(angles - env.C.angles(farI)));
          farIdx = max(mod(farIdx, env.C.QUANT_ANGLES + 1), 1);
       end
       
-      %MAYBE function [closeAngleIdx, close, farAngleIdx, far] = ReadCloseFarAnglesAndDist(obj, env)
       
       function distanceReadings = ReadDistances(obj, env)
          distanceReadings = zeros(1, env.C.ANGLES);

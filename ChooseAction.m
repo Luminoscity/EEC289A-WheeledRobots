@@ -2,7 +2,7 @@
 % 11 December 2017
 % EEC289A - UC Davis
 
-function A = ChooseAction(state, stateActionValues, robot, env)
+function A = ChooseAction(state, stateActionValues, robot, env, stateDefinition)
    destinations = zeros(env.C.ACTIONS, 2);
    M = env.C.ROUND_MAGNITUDE;
    %determine possible next positions
@@ -35,20 +35,16 @@ function A = ChooseAction(state, stateActionValues, robot, env)
    if binornd(1, env.C.EPSILON) == 1
       A = datasample(possibleActions, 1);
    else
-      
-      sz = size(stateActionValues);
-      if length(sz) < 4 || state(1) > sz(1) || state(2) > sz(2) || state(3)...
-            > sz(3) || max(possibleActions) > sz(4)
-         fprintf('')
+            
+      if stateDefinition == 1
+         values = stateActionValues(state(1), state(2), state(3), ...
+            possibleActions);
+      else
+         values = stateActionValues(state(1), state(2), state(3), ...
+            state(4), state(5), possibleActions);
       end
-      
-      values = stateActionValues(state(1), state(2), state(3), ...
-         possibleActions);
       maxValue = max(values);
       maxActions = find(values == maxValue);
-      if isempty(maxActions)
-         fprintf('')
-      end
       A = possibleActions(datasample(maxActions, 1));
    end
 end
