@@ -2,8 +2,8 @@
 % 11 December 2017
 % EEC289A - UC Davis
 
-WORLD_START = 25;
-WorldsToPlot = 3;
+WORLD_START = 23;
+WorldsToPlot = 4;
 Mecanum = true;
 figure
 

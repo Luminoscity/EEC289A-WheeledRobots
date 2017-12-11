@@ -14,7 +14,8 @@
 %----------------------CONSTANTS---------------------------
 clear
 close all
-
+PLOT_WORLD = true;
+PLOT_INITIAL_DISTANCES = false;
 PROGRESS_STEP = 5;
 WORLD_IDX_START = 1;
 DIST_QUANTIZE = 5;           % number of quantized distances
@@ -54,8 +55,8 @@ DIR_SOUTHEAST = 5 * pi / 4;
 DIR_EAST = pi;
 DIR_NORTHEAST = 3 * pi / 4;
 
-PLOT_WORLD = false;
-PLOT_INITIAL_DISTANCES = false;
+PLOT_WORLD = 1;
+PLOT_INITIAL_DISTANCES = 1;
 
 actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT];
 directions = [DIR_NORTH, DIR_NORTHWEST, DIR_WEST, DIR_SOUTHWEST,...
