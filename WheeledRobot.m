@@ -47,7 +47,7 @@ classdef WheeledRobot < handle
          end
          set(gca, 'YDir', 'Normal')
          colormap Jet
-         colorbar
+         %colorbar
          drawnow()
          lastShown = obj.position(:)';
       end
