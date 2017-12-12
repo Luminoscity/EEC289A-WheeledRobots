@@ -9,6 +9,7 @@ classdef WheeledRobot < handle
       farthest        %current farthest obstacle distance
       closest         %current closest obstacle distance
       distanceToGoal  %distance to goal as the crow flies
+      lastShown       %last displayed position of robot in world
    end
    properties (Access = private)
       directions
@@ -17,6 +18,7 @@ classdef WheeledRobot < handle
    methods
       function obj = WheeledRobot(env)
          obj.position = env.start;
+         obj.lastShown = env.start;
          obj.orientation = datasample(env.C.directions, 1);
          obj.directions = env.C.directions;
          obj.farthest = 0;
@@ -25,6 +27,7 @@ classdef WheeledRobot < handle
       
       function StartAt(obj, pos, orient)
          obj.position = pos;
+         obj.lastShown = pos;
          if nargin > 2
             obj.orientation = orient;
          else
@@ -32,24 +35,29 @@ classdef WheeledRobot < handle
          end
       end
       
-      function lastShown = ShowWorld(obj, lastPosition, env, titleStr)
-         env.whichObstacles(lastPosition(2), lastPosition(1)) = 0;
-         env.whichObstacles(env.start(2), env.start(1)) = ...
-            env.numObstacles + 2;
+      function ShowWorld(obj, env, titleStr)
+         env.whichObstacles(obj.lastShown(2), obj.lastShown(1)) = 0;
+        
          env.whichObstacles(obj.position(2), obj.position(1)) = ...
             env.numObstacles + 1;
+         env.whichObstacles(env.start(2), env.start(1)) = ...
+            env.numObstacles + 2;
+         env.whichObstacles(env.goal(2), env.goal(1)) = ...
+            env.numObstacles + 4;
          
          imagesc(env.whichObstacles)
-         if nargin > 3
+         
+         if nargin > 2
             title(titleStr)
          else
             title('The World');
          end
+         
          set(gca, 'YDir', 'Normal')
          colormap Jet
          %colorbar
          drawnow()
-         lastShown = obj.position(:)';
+         obj.lastShown = obj.position(:)';
       end
       
       function [reward, closeIdx, farIdx, dirToGoal, close, far] ...

@@ -73,7 +73,6 @@ classdef Environment < handle
          
          obj.start = positions{randi(count)};
          obj.whichObstacles(obj.start(2), obj.start(1)) = obstCount + 2;
-         obj.robotPos = obj.start(:)';
          
          count = 0;
          attempts = 0;

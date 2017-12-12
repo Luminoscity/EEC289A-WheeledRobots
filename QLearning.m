@@ -10,7 +10,6 @@ function [R, values] = QLearning(stateActionValues, robot, env, ...
       currentState = [closeIdx, farIdx, goalDir, close, far];
    end
    currentPos = robot.position(:)';
-   lastShown = robot.position(:)';
    goalPos = env.goal(:)';
    
    moves = 0;
@@ -21,7 +20,7 @@ function [R, values] = QLearning(stateActionValues, robot, env, ...
          currentAction, env);
       moves = moves + 1;
       if mod(moves, MOVE_DRAW) == 0
-         lastShown = robot.ShowWorld(lastShown, env, worldString);
+         robot.ShowWorld(env, worldString);
       end
       
       R = R + reward;
