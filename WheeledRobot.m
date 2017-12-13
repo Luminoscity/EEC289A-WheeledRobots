@@ -135,6 +135,22 @@ classdef WheeledRobot < handle
          farIdx = max(mod(farIdx, env.C.QUANT_ANGLES + 1), 1);
       end
       
+      function distReading = ReadDistance(obj, env, angle)
+         beam = obj.position + 0.5;
+         distReading = 0;
+         %find distance to closest wall or obstacle at this angle
+         while beam(1) >= 1 && beam(1) < env.C.WORLD_WIDTH + 1 && ...
+               beam(2) >= 1 && beam(2) < env.C.WORLD_HEIGHT + 1
+            %has the beam hit an obstacle
+            if env.obstacles(floor(beam(2)), floor(beam(1)))
+               break
+            end
+            %increment beam length
+            beam(1) = beam(1) + env.C.DIST_RES * cos(angle);
+            beam(2) = beam(2) + env.C.DIST_RES * sin(angle);
+            distReading = distReading + env.C.DIST_RES;
+         end
+      end
       
       function distanceReadings = ReadDistances(obj, env)
          distanceReadings = zeros(1, env.C.ANGLES);
