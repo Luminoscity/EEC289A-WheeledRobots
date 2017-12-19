@@ -61,7 +61,7 @@ classdef WheeledRobot < handle
       end
       
       function [reward, closeIdx, farIdx, dirToGoal, close, far] ...
-              = Move(obj, actionIdx, env)
+              = Move(obj, actionIdx, env, stateDefintion)
          M = env.C.ROUND_MAGNITUDE;
          action = env.C.actions(actionIdx, :);
          reward = 0;
@@ -80,10 +80,18 @@ classdef WheeledRobot < handle
          [dirToGoal, ~] = obj.GoalBearing(env);
          
          %determine reward
-         if obj.closest < prevClosest || obj.distanceToGoal > dist
-            reward = -1;
-         elseif isequal(obj.position, env.goal)
-            reward = 1;
+         if stateDefintion > 2
+            if isequal(obj.position, env.goal)
+               reward = 100;
+           % elseif obj.closest < env.C.OBS_SPACE / 2
+           %    reward = -10;
+            end
+         else
+            if obj.closest < prevClosest || obj.distanceToGoal > dist
+               reward = -1;
+            elseif isequal(obj.position, env.goal)
+               reward = 1;
+            end
          end
       end
       

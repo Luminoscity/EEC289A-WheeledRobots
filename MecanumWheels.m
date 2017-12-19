@@ -19,7 +19,7 @@ PLOT_INITIAL_DISTANCES = false;
 MECANUM = true;              %false for differential wheels
 PROGRESS_STEP = 1;
 WORLD_IDX_START = 1;
-STATE_DEFINITION = 1;
+STATE_DEFINITION = 3;
 MOVE_DRAW = 1;
 DIST_QUANTIZE = 5;           % number of quantized distances
 DIST_QUANT_STEP = 5;         % centimeters between quantized distances
@@ -33,8 +33,10 @@ DISTANCE_SENSOR_RESOLUTION = 0.1;
 ROUND_MAGNITUDE = 1.49;
 REWARD_FLOOR = -200;
 
-EPISODES = 200;  %max is 200
-RUNS = 1;
+EPISODES = 40;  %max is 200
+RUNS = 200;
+%EPISODES = 200;  %max is 200
+%RUNS = 1;
 
 EPSILON = 0.1;
 ALPHA = 0.5;
@@ -63,9 +65,12 @@ directions = [DIR_WEST, DIR_NORTHWEST, DIR_NORTH, DIR_NORTHEAST,...
               DIR_EAST, DIR_SOUTHEAST, DIR_SOUTH, DIR_SOUTHWEST];
           
 if MECANUM
-   actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
+   actions = [ACTION_NORTH; ACTION_NORTHWEST;...
               ACTION_WEST; ACTION_SOUTHWEST; ACTION_SOUTH;...
               ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
+ % actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_NORTHWEST;...
+ %    ACTION_WEST; ACTION_SOUTHWEST; ACTION_SOUTH;...
+ %    ACTION_SOUTHEAST; ACTION_EAST; ACTION_NORTHEAST];
    wheelType = 'Mecanum';
 else
    actions = [ACTION_NORTH; ACTION_LEFT; ACTION_RIGHT; ACTION_SOUTH];
@@ -128,32 +133,40 @@ rewardsQLearning = zeros(1, EPISODES);
 rewardsESarsa = zeros(1, EPISODES);
 fprintf('Runs:Episodes Remaining ');
 %figure
-
+pause(5.0);
 for run = 1:RUNS
-   fprintf(' %d:', RUNS - run + 1);
+   fprintf(' \n%d:', RUNS - run + 1);
+   if STATE_DEFINITION ~= 1 && STATE_DEFINITION ~= 2
+      worldString = sprintf('World%d', run);
+      load(strcat('FunWorlds/',worldString,'.mat'))
+      env.C.actions = actions;
+      env.C.ACTIONS = length(actions);
+   end
    
    if STATE_DEFINITION == 1
       stateActionValuesSarsa = stateActionValues(:,:,:,:);
       stateActionValuesQLearning = stateActionValues(:,:,:,:);
       stateActionValuesESarsa = stateActionValues(:,:,:,:);
-   else
+   elseif STATE_DEFINITION == 2
       stateActionValuesSarsa = stateActionValues(:,:,:,:,:,:);
       stateActionValuesQLearning = stateActionValues(:,:,:,:,:,:);
       stateActionValuesESarsa = stateActionValues(:,:,:,:,:,:);
+   else
+      stateActionValuesSarsa = zeros(env.C.WORLD_WIDTH, ...
+         env.C.WORLD_HEIGHT, env.C.ACTIONS);
+      stateActionValuesQLearning = zeros(env.C.WORLD_WIDTH, ...
+         env.C.WORLD_HEIGHT, env.C.ACTIONS);
+      stateActionValuesESarsa = zeros(env.C.WORLD_WIDTH, ...
+         env.C.WORLD_HEIGHT, env.C.ACTIONS);
    end
    
    for i = startEpisode:EPISODES
       if mod(i - 1, PROGRESS_STEP) == 0
          fprintf('%d ', EPISODES - i + 1);
       end
-      
-      if mod(i, 15) == 0
-         stateActionValuesSarsa = stateActionValues(:,:,:,:);
-         stateActionValuesQLearning = stateActionValues(:,:,:,:);
-         stateActionValuesESarsa = stateActionValues(:,:,:,:);
+      if STATE_DEFINITION == 1 || STATE_DEFINITION == 2
+        worldString = sprintf('World%d', i);
       end
-      
-      worldString = sprintf('World%d', i);
       load(strcat('FunWorlds/',worldString,'.mat'))
       env.C.actions = actions;
       env.C.ACTIONS = length(actions);
@@ -167,27 +180,36 @@ for run = 1:RUNS
       %colorbar
       drawnow()
       
-      [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
-         false, robot, env, STATE_DEFINITION, strcat(worldString,'-S'),...
-         MOVE_DRAW);
-      lastShown = robot.lastShown;
-      robot.StartAt(env.start, 0);
-      robot.lastShown = lastShown;
-      rewardsSarsa(i) = rewardsSarsa(i) + max(Value, REWARD_FLOOR);
-      
-      [Value, stateActionValuesQLearning] = QLearning(...
-         stateActionValuesQLearning, robot, env, STATE_DEFINITION, ...
-         strcat(worldString,'-Q'), MOVE_DRAW);
-      lastShown = robot.lastShown;
-      robot.StartAt(env.start, 0);
-      robot.lastShown = lastShown;
-      rewardsQLearning(i) = rewardsQLearning(i) + max(Value, REWARD_FLOOR);
-      
-      [Value, stateActionValuesESarsa] = Sarsa(stateActionValuesESarsa,...
-         true, robot, env, STATE_DEFINITION, strcat(worldString,'-E'),...
-         MOVE_DRAW);
-      robot.StartAt(env.start, 0);
-      rewardsESarsa(i) = rewardsESarsa(i) + max(Value, REWARD_FLOOR);
+      if STATE_DEFINITION == 1 || STATE_DEFINITION == 2
+         [Value, stateActionValuesSarsa] = Sarsa(stateActionValuesSarsa,...
+            false, robot, env, STATE_DEFINITION, strcat(worldString,...
+            '-S'), MOVE_DRAW);
+         lastShown = robot.lastShown;
+         robot.StartAt(env.start, 0);
+         robot.lastShown = lastShown;
+         rewardsSarsa(i) = rewardsSarsa(i) + max(Value, REWARD_FLOOR);
+
+         [Value, stateActionValuesQLearning] = QLearning(...
+            stateActionValuesQLearning, robot, env, STATE_DEFINITION, ...
+            strcat(worldString,'-Q'), MOVE_DRAW);
+         lastShown = robot.lastShown;
+         robot.StartAt(env.start, 0);
+         robot.lastShown = lastShown;
+         rewardsQLearning(i) = rewardsQLearning(i) + max(Value, ...
+            REWARD_FLOOR);
+         
+         [Value, stateActionValuesESarsa] = Sarsa(...
+            stateActionValuesESarsa, true, robot, env, STATE_DEFINITION,...
+            strcat(worldString,'-E'), MOVE_DRAW);
+         robot.StartAt(env.start, 0);
+         rewardsESarsa(i) = rewardsESarsa(i) + max(Value, REWARD_FLOOR);
+      else
+         [Value, stateActionValuesESarsa] = Sarsa(...
+            stateActionValuesESarsa, true, robot, env, STATE_DEFINITION,...
+            sprintf('%s-E-%d', worldString,i), MOVE_DRAW);
+         robot.StartAt(env.start, 0);
+         rewardsESarsa(i) = rewardsESarsa(i) + max(Value, REWARD_FLOOR);
+      end
    end
 end
 
@@ -208,6 +230,7 @@ fprintf('\nTime for %s Wheels (%d runs, %d episodes): %f seconds\n', ...
    wheelType, RUNS, EPISODES, tstop)
 
 %--------------------SAVE RESULTS--------------------------------
+%{
 if MECANUM
    saveString = sprintf('MecST2Results%dRuns%dWorlds.mat', RUNS, EPISODES);
 else
@@ -230,4 +253,4 @@ str = sprintf('%s Wheels - %d Runs, %d Episodes', wheelType, RUNS, ...
    EPISODES);
 title(str);
 hold off
-
+%}

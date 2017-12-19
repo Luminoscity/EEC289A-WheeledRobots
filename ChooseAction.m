@@ -53,9 +53,11 @@ function A = ChooseAction(state, stateActionValues, robot, env, ...
          if stateDefinition == 1
             values = stateActionValues(state(1), state(2), state(3), ...
                possibleActions);
-         else
+         elseif stateDefinition == 2
             values = stateActionValues(state(1), state(2), state(3), ...
                state(4), state(5), possibleActions);
+         else
+            values = stateActionValues(state(1), state(2), possibleActions);
          end
          maxValue = max(values);
          maxActions = find(values == maxValue);
